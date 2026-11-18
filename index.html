@@ -326,6 +326,7 @@ const SCHOOLS = {
     credits:15,
     cal:{fall:[[7,25],[11,15]], spring:[[0,19],[4,10]]},
     rival:"隔壁耶鲁", treat:"Dairy Bar 冰淇淋", treatP:6, region:"康州",
+    spot:"在 Storrs 等校车", snow:"Storrs 下大雪停课", mascot:"哈士奇 Jonathan ",
     src:{url:"https://financialaid.uconn.edu/cost/", text:"UConn 学生财务资助办公室 · Cost of Attendance", note:"2026–2027 学年预估直接费用；健康保险为 2025–26 费率"}
   },
   bu: {
@@ -340,6 +341,7 @@ const SCHOOLS = {
     credits:16,
     cal:{fall:[[8,2],[11,18]], spring:[[0,20],[4,8]]},
     rival:"隔壁哈佛", treat:"Insomnia Cookies 饼干", treatP:5, region:"麻州",
+    spot:"在 Comm Ave 等绿线地铁", snow:"波士顿暴雪停课", mascot:"小狗 Rhett ",
     src:{url:"https://www.bu.edu/finaid/undergraduate-students/undergraduate/", text:"BU Financial Assistance · Cost of Attendance for Undergraduates", note:"2026–2027 学年"}
   },
   nyu: {
@@ -357,6 +359,7 @@ const SCHOOLS = {
     credits:16,
     cal:{fall:[[8,2],[11,16]], spring:[[0,20],[4,12]]},
     rival:"上城哥大", treat:"Joe's Pizza 一片披萨", treatP:5, region:"纽约",
+    spot:"在华盛顿广场晒太阳", snow:"纽约下雪停课", mascot:"紫色山猫",
     src:{url:"https://www.nyu.edu/admissions/financial-aid-and-scholarships/cost-of-attendance.html", text:"NYU Financial Aid · Cost of Attendance", note:"2026–2027 学年纽约校区预估费用"}
   }
 };
@@ -489,17 +492,54 @@ function renderTable(){
   $('costTbl').innerHTML = M.rows.map(r=>`<tr><td>${r[0]}</td><td>${money(r[1],0)}</td></tr>`).join('')+
     `<tr class="sum"><td>每学期</td><td>${money(M.semCost,0)}</td></tr><tr class="sum"><td>一年合计</td><td>${money(M.t,0)}</td></tr><tr class="sum"><td>四年合计</td><td>${money(M.total,0)}</td></tr>`;
   const p2 = M.perSec*120, cls = M.perSec*M.len;
+  const ps = M.perSec, perMin = ps*60, day = M.t/365, c = consumed();
+  const weeks = Math.max(1,+$('weeks').value||14), times = (n,unit) => `${fmt(Math.floor(n),0)} ${unit}`;
+  const v = M.v;
   const lines = [
     `你发呆的 2 分钟，烧掉了 ${money(p2)}，够买一杯 Dunkin' 了。`,
     `这节课 ${money(cls,0)}，认真听讲是唯一的回本方式。`,
-    `刷一条 15 秒短视频 = ${money(M.perSec*15)}，这是全校最贵的短视频。`,
+    `刷一条 15 秒短视频 = ${money(ps*15)}，这是全校最贵的短视频。`,
     `这个学费消耗速度，不知道的以为你在${sc.rival}上课。`,
-    `迟到 10 分钟 = ${money(M.perSec*600)}，够在食堂吃一顿了。`,
-    `现在下雪停课？恭喜，学费照扣。`,
-    `每天就算躺平睡觉，也有 ${money(M.t/365,0)} 悄悄离开你的账户。`,
-    `${sc.short} 加油！你的钱包已经在加油了。`
+    `迟到 10 分钟 = ${money(ps*600)}，够在食堂吃一顿了。`,
+    `${sc.snow}？恭喜，学费照扣。`,
+    `每天就算躺平睡觉，也有 ${money(day,0)} 悄悄离开你的账户。`,
+    `${sc.short} 加油！你的钱包已经在加油了。`,
+    `上课去趟厕所 5 分钟 = ${money(ps*300)}，这是你人生中最贵的一次如厕。`,
+    `打一个哈欠大约 6 秒 = ${money(ps*6)}，建议憋着。`,
+    `眨一次眼约 0.3 秒 = ${money(ps*0.3,4)}，请节制眨眼。`,
+    `上课回一条微信 30 秒 = ${money(ps*30)}，记得让对方转账。`,
+    `教授讲了个冷笑话你没笑，${money(ps*20)} 打了水漂。`,
+    `一节课没听懂？没关系，${money(cls,0)} 已经确认收款。`,
+    `早八翘课睡懒觉：省下了精力，亏掉了 ${money(cls,0)}。`,
+    `走神 10 分钟 = ${money(ps*600)} ≈ ${times(ps*600/7,'杯')}奶茶。`,
+    `在 Canvas 上找作业入口的 3 分钟，花了 ${money(ps*180)}。`,
+    `点名的时候你在，听课的时候你不在，${money(cls,0)} 照收不误。`,
+    `坐你旁边睡觉的同学，这节课也在烧 ${money(cls,0)}，睡得真贵。`,
+    `${sc.spot} 10 分钟 = ${money(ps*600)}，时间就是金钱，这句话在这里是字面意思。`,
+    `每秒 ${money(ps,4)}，一小时课就是 ${money(ps*3600,0)}，比校内打工的时薪高出好几倍。`,
+    `期末周通宵也好、睡觉也好，学费都按每天 ${money(day,0)} 准时到账。`,
+    `这学期平均每周 ${money(M.semCost/weeks,0)}，周末也一起算。`,
+    `四年总计 ${money(M.total,0)}，相当于 ${times(M.total/15000,'辆')}二手卡罗拉。你选了文凭。`,
+    `你已经烧掉的 ${money(c,0)}，够买 ${times(c/sc.treatP,'份')} ${sc.treat}。`,
+    `离毕业还要烧 ${money(M.total-c,0)}，请珍惜接下来的每一秒。`,
+    `Office Hour 是免费的，这可能是学校里唯一不收钱的东西。`,
+    `图书馆占座一下午：学费照扣，空调免费，算是小赚。`,
+    `过了退课截止日再退课？那就当是给学校的捐款了。`,
+    `选课时多选一门水课，也要付同样的学费。水课不打折。`,
+    `爸妈的血汗钱正在以每秒 ${money(ps,4)} 的速度燃烧，抬头看黑板。`,
+    `今天的你，值得被吉祥物${sc.mascot}骂一句：快去上课！`,
+    `看到这条滚动字幕的 5 秒，又花了 ${money(ps*5)}。`
   ];
-  $('ticker').innerHTML = lines.map(l=>`<b>${l}</b>`).join('');
+  if(S.school==='uconn' && v.id!=='in'){
+    const inAmt = sc.variants.find(x=>x.id==='in').amt;
+    lines.push(`坐你旁边的康州州内同学，同一节课的学费只有你的 ${Math.round(inAmt/v.amt*100)}%。`);
+  }
+  if(S.school==='nyu' && v.id==='tisch') lines.push(`Tisch 的学生，你的每一秒都比隔壁学院贵一点，艺术就是这么昂贵。`);
+  if(S.school==='nyu' && v.id==='stern') lines.push(`Stern 的同学，算算这门课的 ROI，再决定要不要睡觉。`);
+  for(let i=lines.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[lines[i],lines[j]]=[lines[j],lines[i]];}
+  const tk = $('ticker');
+  tk.innerHTML = lines.map(l=>`<b>${l}</b>`).join('');
+  tk.style.animationDuration = Math.max(45, lines.join('').length*0.22)+'s';
   $('whoTag').textContent = whoText();
   let lbl='', trk='';
   for(let i=0;i<8;i++){
