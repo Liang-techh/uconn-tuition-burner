@@ -20,6 +20,18 @@
   .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;gap:12px}
   .brand{font-weight:800;letter-spacing:.06em;color:var(--navy2);font-size:20px}
   .brand small{display:block;font-weight:500;letter-spacing:.02em;color:var(--muted);font-size:12px;margin-top:2px}
+  .schoolWrap{position:relative}
+  .brandBtn{background:transparent;padding:6px 10px;margin:-6px -10px;border-radius:12px;text-align:left;font-weight:800;border:1px solid transparent;transition:background .15s,border-color .15s}
+  .brandBtn:hover,.brandBtn[aria-expanded="true"]{background:#f3f4f7;border-color:var(--line)}
+  .brandBtn .caret{display:inline-block;margin-left:8px;font-size:12px;color:var(--gold);transition:transform .2s}
+  .brandBtn[aria-expanded="true"] .caret{transform:rotate(180deg)}
+  .schoolMenu{position:absolute;top:calc(100% + 10px);left:-10px;z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px rgba(11,31,69,.15);padding:6px;min-width:280px;display:none}
+  .schoolMenu.on{display:block}
+  .schoolMenu button{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px;background:#fff;padding:10px 12px;border-radius:10px;text-align:left;font-weight:600;color:var(--ink)}
+  .schoolMenu button:hover{background:#f3f4f7}
+  .schoolMenu button.on{background:var(--navy);color:#fff}
+  .schoolMenu button small{font-weight:500;font-size:12px;opacity:.7}
+  .schoolMenu .mh{font-size:11px;color:var(--muted);padding:6px 12px 4px;letter-spacing:.06em}
   .badge{border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;
     letter-spacing:.08em;color:var(--muted);display:flex;gap:8px;align-items:center;white-space:nowrap}
   .dot{width:8px;height:8px;border-radius:50%;background:#bbb}
@@ -139,7 +151,10 @@
   <!-- 1. live class timer -->
   <div class="card">
     <div class="top">
-      <div class="brand">UCONN · STORRS<small>康涅狄格大学 学费实时燃烧计时器</small></div>
+      <div class="schoolWrap">
+        <button class="brand brandBtn" id="brandBtn" aria-haspopup="true" aria-expanded="false" title="切换学校"><span id="brandName">UCONN · STORRS</span><span class="caret">▼</span><small id="brandSub">康涅狄格大学 学费实时燃烧计时器</small></button>
+        <div class="schoolMenu" id="schoolMenu" role="menu"></div>
+      </div>
       <div class="topR">
         <div class="curSeg" id="curSeg" title="切换显示货币"><button data-c="USD">US$</button><button data-c="CNY">¥ RMB</button></div>
         <div class="badge" id="badge"><span class="dot"></span><span id="badgeTxt">ON CLASS</span></div>
@@ -230,21 +245,11 @@
     <div class="panel">
       <h2>计算设置</h2>
       <div class="form">
-        <label class="full">学生身份
-          <div class="seg" id="resSeg">
-            <button data-v="in">康州州内</button>
-            <button data-v="ne">新英格兰区域</button>
-            <button data-v="out">州外 / 国际生</button>
-          </div>
+        <label class="full"><span id="resLbl">学生身份</span>
+          <div class="seg" id="resSeg"></div>
         </label>
         <label class="full">计入的费用
-          <div class="checks">
-            <label><input type="checkbox" id="cFees" checked> 大学及学生费</label>
-            <label><input type="checkbox" id="cHouse"> 宿舍</label>
-            <label><input type="checkbox" id="cMeal"> 餐费</label>
-            <label><input type="checkbox" id="cIns"> 医疗保险</label>
-            <label><input type="checkbox" id="cBook"> 教材包</label>
-          </div>
+          <div class="checks" id="extrasBox"></div>
         </label>
         <label>每节课时长（分钟）
           <select id="classLen"><option value="50">50（MWF 课）</option><option value="75" selected>75（TuTh 课）</option><option value="150">150（研讨课）</option></select>
@@ -259,14 +264,13 @@
           <input type="number" id="rate" min="1" max="20" step="0.01" value="7.10">
         </label>
       </div>
-      <div class="note">算法：一年费用 ÷（每学期学分 × 2 × 上课周数 × 50 分钟）= 每“上课分钟”的价格。UConn 1 学分 ≈ 每周 50 分钟课堂时间。<br>
-      已消耗学费 = 已读完的学期 × 每学期费用 + 当前学期按日历已过的比例 × 每学期费用（秋季学期按 8/25–12/15，春季学期按 1/19–5/10 估算）。假设四年学费不涨。</div>
+      <div class="note" id="algoNote"></div>
     </div>
 
     <div class="panel">
-      <h2>2026–27 学年费用（Storrs 本科）</h2>
+      <h2 id="costTitle">2026–27 学年费用</h2>
       <table id="costTbl"></table>
-      <div class="note">数据来源：<a href="https://financialaid.uconn.edu/cost/" target="_blank" rel="noopener">UConn 学生财务资助办公室 · Cost of Attendance</a>（2026–2027 学年预估直接费用；健康保险为 2025–26 费率）。未扣除奖学金与助学金，仅供娱乐参考。<br><span id="rateNote"></span></div>
+      <div class="note"><span id="srcNote"></span>未扣除奖学金与助学金，仅供娱乐参考。<br><span id="rateNote"></span></div>
     </div>
   </div>
 </div>
@@ -277,12 +281,11 @@
     <h2>先告诉我你是谁 👀</h2>
     <div class="sub" style="margin:0">我来算算你已经烧了多少学费。</div>
     <div class="mform">
-      <label class="full">学生身份
-        <div class="seg" id="mRes">
-          <button data-v="in">康州州内</button>
-          <button data-v="ne">新英格兰</button>
-          <button data-v="out" class="on">州外/国际生</button>
-        </div>
+      <label class="full">我的学校
+        <select id="mSchool"></select>
+      </label>
+      <label class="full"><span id="mResLbl">学生身份</span>
+        <div class="seg" id="mRes"></div>
       </label>
       <label>我现在是
         <select id="mGrade"><option value="1">大一</option><option value="2">大二</option><option value="3">大三</option><option value="4">大四</option></select>
@@ -290,11 +293,8 @@
       <label>当前学期
         <select id="mSem"><option value="0">上学期（秋季）</option><option value="1">下学期（春季）</option></select>
       </label>
-      <label class="full">我住校吃食堂吗？
-        <div class="checks">
-          <label><input type="checkbox" id="mHouse"> 住学校宿舍</label>
-          <label><input type="checkbox" id="mMeal"> 买了餐卡</label>
-        </div>
+      <label class="full">还要算上这些吗？
+        <div class="checks" id="mExtras"></div>
       </label>
     </div>
     <button class="primary" id="mGo">开始算账</button>
@@ -303,92 +303,189 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== Data: 2026–2027 UConn Storrs full-time undergraduate, per academic year (USD) =====
-const COST = {
-  tuition: {in:17010, ne:26028, out:39678},
-  fees: 4564, housing: 8288, meal: 6896, insurance: 3214, books: 570
+// ===== Schools: 2026–2027 full-time undergraduate, per academic year (USD) =====
+// variants = the main tuition line (differs by residency or school/college)
+// extras   = optional add-ons the user can include; def = included by default
+// cal      = estimated semester windows [month(0-based), day]
+const SCHOOLS = {
+  uconn: {
+    name:"UCONN · STORRS", cn:"康涅狄格大学", short:"UConn", campus:"Storrs 本科",
+    variantLabel:"学生身份", tuitionLabel:"学费",
+    variants:[
+      {id:"in", label:"康州州内", amt:17010},
+      {id:"ne", label:"新英格兰区域", amt:26028},
+      {id:"out", label:"州外 / 国际生", amt:39678}
+    ], defVariant:"out",
+    extras:[
+      {id:"fees", label:"大学及学生费", amt:4564, def:true},
+      {id:"housing", label:"宿舍（标准双人间）", short:"宿舍", amt:8288, live:true},
+      {id:"meal", label:"餐费（Value 方案）", short:"餐费", amt:6896, live:true},
+      {id:"ins", label:"医疗保险（可豁免）", short:"医疗保险", amt:3214},
+      {id:"books", label:"Husky 教材包（可豁免）", short:"教材包", amt:570}
+    ],
+    credits:15,
+    cal:{fall:[[7,25],[11,15]], spring:[[0,19],[4,10]]},
+    rival:"隔壁耶鲁", treat:"Dairy Bar 冰淇淋", treatP:6, region:"康州",
+    src:{url:"https://financialaid.uconn.edu/cost/", text:"UConn 学生财务资助办公室 · Cost of Attendance", note:"2026–2027 学年预估直接费用；健康保险为 2025–26 费率"}
+  },
+  bu: {
+    name:"BOSTON UNIVERSITY", cn:"波士顿大学", short:"BU", campus:"本科",
+    variantLabel:"学生类型", tuitionLabel:"学费",
+    variants:[{id:"std", label:"本科生（所有学院）", amt:73024}], defVariant:"std",
+    extras:[
+      {id:"fees", label:"学校杂费", amt:1570, def:true},
+      {id:"hf", label:"住宿和餐饮（多数方案）", short:"住宿+餐饮", amt:20740, live:true},
+      {id:"books", label:"书本和文具（估计）", short:"书本", amt:1000}
+    ],
+    credits:16,
+    cal:{fall:[[8,2],[11,18]], spring:[[0,20],[4,8]]},
+    rival:"隔壁哈佛", treat:"Insomnia Cookies 饼干", treatP:5, region:"麻州",
+    src:{url:"https://www.bu.edu/finaid/undergraduate-students/undergraduate/", text:"BU Financial Assistance · Cost of Attendance for Undergraduates", note:"2026–2027 学年"}
+  },
+  nyu: {
+    name:"NEW YORK UNIVERSITY", cn:"纽约大学", short:"NYU", campus:"纽约校区本科",
+    variantLabel:"所在学院", tuitionLabel:"学费及杂费",
+    variants:[
+      {id:"std", label:"大多数学院", amt:68576, hint:"CAS、Tandon、Steinhardt、Gallatin 等"},
+      {id:"stern", label:"Stern 商学院", amt:70464},
+      {id:"tisch", label:"Tisch 艺术学院", amt:75326}
+    ], defVariant:"std",
+    extras:[
+      {id:"hf", label:"住宿和餐饮", short:"住宿+餐饮", amt:26438, live:true},
+      {id:"books", label:"书本和文具（估计）", short:"书本", amt:1492}
+    ],
+    credits:16,
+    cal:{fall:[[8,2],[11,16]], spring:[[0,20],[4,12]]},
+    rival:"上城哥大", treat:"Joe's Pizza 一片披萨", treatP:5, region:"纽约",
+    src:{url:"https://www.nyu.edu/admissions/financial-aid-and-scholarships/cost-of-attendance.html", text:"NYU Financial Aid · Cost of Attendance", note:"2026–2027 学年纽约校区预估费用"}
+  }
 };
-const NAMES = {in:"康州州内", ne:"新英格兰区域", out:"州外 / 国际生"};
 const GRADES = ["","大一","大二","大三","大四"];
 const SEMS = ["上学期","下学期"];
 
-// Shop items: approximate US reference prices (USD)
+// Shop items: approximate US reference prices (USD). Functions get the current school.
 const ITEMS = [
-  {id:"dunkin", ic:"☕", nm:"Dunkin' 冰咖啡", p:4},
-  {id:"dairy", ic:"🍦", nm:"UConn Dairy Bar 冰淇淋", p:6},
-  {id:"boba", ic:"🧋", nm:"一杯奶茶", p:7},
-  {id:"chipotle", ic:"🌯", nm:"Chipotle 卷饼", p:13},
-  {id:"chinese", ic:"🥡", nm:"中餐外卖一份", p:16},
-  {id:"hotpot", ic:"🍲", nm:"和室友吃顿火锅", p:120},
-  {id:"game", ic:"🏀", nm:"UConn 篮球赛门票", p:45},
-  {id:"nyc", ic:"🗽", nm:"纽约周末游", p:450},
-  {id:"airpods", ic:"🎧", nm:"AirPods Pro", p:249},
-  {id:"switch", ic:"🎮", nm:"游戏主机", p:499},
-  {id:"iphone", ic:"📱", nm:"新款 iPhone Pro", p:1099},
-  {id:"macbook", ic:"💻", nm:"MacBook Air", p:999},
-  {id:"flight", ic:"✈️", nm:"回国往返机票", p:1500},
-  {id:"lv", ic:"👜", nm:"大牌包包", p:2500},
-  {id:"rent", ic:"🏠", nm:"校外合租一年房租", p:12000},
-  {id:"corolla", ic:"🚗", nm:"二手丰田卡罗拉", p:15000},
-  {id:"tesla", ic:"⚡", nm:"全新 Model 3", p:42000},
-  {id:"house", ic:"🏡", nm:"康州小房子首付", p:60000}
+  {id:"dunkin", ic:"☕", nm:()=>"Dunkin' 冰咖啡", p:()=>4},
+  {id:"treat", ic:"🍦", nm:sc=>sc.treat, p:sc=>sc.treatP},
+  {id:"boba", ic:"🧋", nm:()=>"一杯奶茶", p:()=>7},
+  {id:"chipotle", ic:"🌯", nm:()=>"Chipotle 卷饼", p:()=>13},
+  {id:"chinese", ic:"🥡", nm:()=>"中餐外卖一份", p:()=>16},
+  {id:"hotpot", ic:"🍲", nm:()=>"和室友吃顿火锅", p:()=>120},
+  {id:"game", ic:"🏀", nm:sc=>sc.short+" 球赛门票", p:()=>45},
+  {id:"trip", ic:"🗽", nm:sc=>sc.short==="NYU"?"波士顿周末游":"纽约周末游", p:()=>450},
+  {id:"airpods", ic:"🎧", nm:()=>"AirPods Pro", p:()=>249},
+  {id:"switch", ic:"🎮", nm:()=>"游戏主机", p:()=>499},
+  {id:"iphone", ic:"📱", nm:()=>"新款 iPhone Pro", p:()=>1099},
+  {id:"macbook", ic:"💻", nm:()=>"MacBook Air", p:()=>999},
+  {id:"flight", ic:"✈️", nm:()=>"回国往返机票", p:()=>1500},
+  {id:"lv", ic:"👜", nm:()=>"大牌包包", p:()=>2500},
+  {id:"rent", ic:"🏠", nm:()=>"校外合租一年房租", p:()=>12000},
+  {id:"corolla", ic:"🚗", nm:()=>"二手丰田卡罗拉", p:()=>15000},
+  {id:"tesla", ic:"⚡", nm:()=>"全新 Model 3", p:()=>42000},
+  {id:"house", ic:"🏡", nm:sc=>sc.region+"小房子首付", p:()=>60000}
 ];
 
 const $ = id => document.getElementById(id);
 const fmt = (n,d=2)=>n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem('uconnBurn_'+k))}catch(e){return null}},
+  set(k,v){try{localStorage.setItem('uconnBurn_'+k,JSON.stringify(v))}catch(e){}}
+};
+
 // ===== Currency =====
 let CUR = 'USD', RATE = 7.10, RATE_SRC = '参考汇率';
 const cv = n => CUR==='CNY' ? n*RATE : n;
 const sym = () => CUR==='CNY' ? '¥' : '$';
 const money = (n,d=2) => sym()+fmt(cv(n),d);
 const hms = s=>{s=Math.max(0,Math.floor(s));return [s/3600|0,(s%3600)/60|0,s%60].map(x=>String(x).padStart(2,'0')).join(':')};
-const store = {
-  get(k){try{return JSON.parse(localStorage.getItem('uconnBurn_'+k))}catch(e){return null}},
-  set(k,v){try{localStorage.setItem('uconnBurn_'+k,JSON.stringify(v))}catch(e){}}
-};
 
 // ===== State =====
-const S = {res:"out", grade:1, sem:0, running:true, start:Date.now(), pausedAt:null, cart:{}};
-const saved = store.get('profile');
-if(saved){Object.assign(S, saved);}
+// per-school choices: S.pick[school] = {variant, extras:{id:bool}}
+const S = {school:"uconn", grade:1, sem:0, pick:{}, running:true, start:Date.now(), pausedAt:null, cart:{}};
+const saved = store.get('profile2');
+const legacy = store.get('profile');           // from the UConn-only version
+if(saved){ Object.assign(S, saved); }
+else if(legacy){
+  S.grade = legacy.grade||1; S.sem = legacy.sem||0;
+  S.pick.uconn = {variant: legacy.res||"out", extras:{fees:true, housing:!!legacy.house, meal:!!legacy.meal}};
+}
 S.cart = store.get('cart') || {};
+if(!SCHOOLS[S.school]) S.school = "uconn";
 
-// default semester by today's date
+const SC = () => SCHOOLS[S.school];
+function pick(key=S.school){
+  const sc = SCHOOLS[key];
+  if(!S.pick[key]){
+    const ex={}; sc.extras.forEach(e=>ex[e.id]=!!e.def);
+    S.pick[key] = {variant: sc.defVariant, extras: ex};
+  }
+  const p = S.pick[key];
+  if(!sc.variants.find(v=>v.id===p.variant)) p.variant = sc.defVariant;
+  return p;
+}
 function guessSem(){const m=new Date().getMonth();return (m>=7)?0:(m<=5?1:0)}
-
-// semester window for current academic year
 function semWindow(sem){
   const now=new Date(), y=now.getFullYear(), m=now.getMonth();
-  const fallYear = m>=6 ? y : y-1;
-  return sem===0 ? [new Date(fallYear,7,25), new Date(fallYear,11,15)]
-                 : [new Date(fallYear+1,0,19), new Date(fallYear+1,4,10)];
+  const fallYear = m>=6 ? y : y-1, c = SC().cal;
+  return sem===0 ? [new Date(fallYear,c.fall[0][0],c.fall[0][1]), new Date(fallYear,c.fall[1][0],c.fall[1][1])]
+                 : [new Date(fallYear+1,c.spring[0][0],c.spring[0][1]), new Date(fallYear+1,c.spring[1][0],c.spring[1][1])];
 }
+const md = d => `${d.getMonth()+1}/${d.getDate()}`;
 
 // ===== Model =====
 function annual(){
-  let t = COST.tuition[S.res], rows=[["学费（"+NAMES[S.res]+"）",COST.tuition[S.res]]];
-  if($('cFees').checked){t+=COST.fees;rows.push(["大学及学生费",COST.fees])}
-  if($('cHouse').checked){t+=COST.housing;rows.push(["宿舍（标准双人间）",COST.housing])}
-  if($('cMeal').checked){t+=COST.meal;rows.push(["餐费（Value 方案）",COST.meal])}
-  if($('cIns').checked){t+=COST.insurance;rows.push(["医疗保险（可豁免）",COST.insurance])}
-  if($('cBook').checked){t+=COST.books;rows.push(["Husky 教材包（可豁免）",COST.books])}
-  return {t,rows};
+  const sc = SC(), p = pick(), v = sc.variants.find(x=>x.id===p.variant);
+  let t = v.amt, rows=[[sc.tuitionLabel+(sc.variants.length>1?"（"+v.label+"）":""), v.amt]];
+  sc.extras.forEach(e=>{ if(p.extras[e.id]){ t+=e.amt; rows.push([e.label,e.amt]); } });
+  return {t,rows,v};
 }
+let M;
 function model(){
-  const {t,rows} = annual();
-  const credits = Math.max(1,+$('credits').value||15), weeks = Math.max(1,+$('weeks').value||14);
+  const {t,rows,v} = annual();
+  const credits = Math.max(1,+$('credits').value||SC().credits), weeks = Math.max(1,+$('weeks').value||14);
   const perSec = t/(credits*2*weeks*50)/60;
   const len = +$('classLen').value*60;
-  return {t,rows,perSec,len,total:t*4,semCost:t/2,semIdx:(S.grade-1)*2+S.sem,win:semWindow(S.sem)};
+  return {t,rows,v,perSec,len,total:t*4,semCost:t/2,semIdx:(S.grade-1)*2+S.sem,win:semWindow(S.sem)};
 }
-function semFrac(){
-  const [a,b]=M.win, now=Date.now();
-  return Math.min(1,Math.max(0,(now-a)/(b-a)));
-}
+function semFrac(){ const [a,b]=M.win, now=Date.now(); return Math.min(1,Math.max(0,(now-a)/(b-a))); }
 function consumed(){return M.semIdx*M.semCost + semFrac()*M.semCost}
+function whoText(){ const sc=SC(); return `${sc.short} · ${M.v.label} · ${GRADES[S.grade]}${SEMS[S.sem]}`; }
+
+// ===== School UI =====
+function renderSchoolUI(){
+  const sc = SC(), p = pick();
+  document.title = `${sc.short} 学费燃烧计时器`;
+  $('brandName').textContent = sc.name;
+  $('brandSub').textContent = `${sc.cn} 学费实时燃烧计时器 · 点击切换学校`;
+  $('schoolMenu').innerHTML = '<div class="mh">选择学校</div>' + Object.entries(SCHOOLS).map(([k,s])=>
+    `<button role="menuitemradio" aria-checked="${k===S.school}" data-s="${k}" class="${k===S.school?'on':''}"><span>${s.name}</span><small>${s.cn}</small></button>`).join('');
+  $('resLbl').textContent = sc.variantLabel;
+  $('resSeg').innerHTML = sc.variants.map(v=>`<button data-v="${v.id}" class="${v.id===p.variant?'on':''}" title="${v.hint||''}">${v.label}</button>`).join('');
+  $('extrasBox').innerHTML = sc.extras.map(e=>`<label><input type="checkbox" data-x="${e.id}" ${p.extras[e.id]?'checked':''}> ${e.short||e.label}</label>`).join('');
+  $('costTitle').textContent = `2026–27 学年费用（${sc.short} ${sc.campus}）`;
+  $('srcNote').innerHTML = `数据来源：<a href="${sc.src.url}" target="_blank" rel="noopener">${sc.src.text}</a>（${sc.src.note}）。`;
+  const c=sc.cal;
+  $('algoNote').innerHTML = `算法：一年费用 ÷（每学期学分 × 2 × 上课周数 × 50 分钟）= 每“上课分钟”的价格，按 1 学分 ≈ 每周 50 分钟课堂时间估算。<br>
+    已消耗学费 = 已读完的学期 × 每学期费用 + 当前学期按日历已过的比例 × 每学期费用（${sc.short} 秋季学期按 ${c.fall[0][0]+1}/${c.fall[0][1]}–${c.fall[1][0]+1}/${c.fall[1][1]}，春季学期按 ${c.spring[0][0]+1}/${c.spring[0][1]}–${c.spring[1][0]+1}/${c.spring[1][1]} 估算）。假设四年学费不涨。`;
+}
+function setSchool(k){
+  if(!SCHOOLS[k] || k===S.school){ closeMenu(); return; }
+  S.school = k; $('credits').value = SCHOOLS[k].credits;
+  closeMenu(); renderSchoolUI(); recalc();
+  toast(`已切换到 ${SCHOOLS[k].cn}`);
+}
+function closeMenu(){ $('schoolMenu').classList.remove('on'); $('brandBtn').setAttribute('aria-expanded','false'); }
+$('brandBtn').onclick = e => { e.stopPropagation(); const on=!$('schoolMenu').classList.contains('on'); $('schoolMenu').classList.toggle('on',on); $('brandBtn').setAttribute('aria-expanded',String(on)); };
+$('schoolMenu').onclick = e => { const b=e.target.closest('button[data-s]'); if(b) setSchool(b.dataset.s); };
+document.addEventListener('click', e => { if(!e.target.closest('.schoolWrap')) closeMenu(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeMenu(); });
+$('resSeg').onclick = e => { const b=e.target.closest('button[data-v]'); if(!b) return; pick().variant=b.dataset.v;
+  $('resSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); recalc(); };
+$('extrasBox').onchange = e => { const x=e.target.dataset.x; if(x){ pick().extras[x]=e.target.checked; recalc(); } };
 
 // ===== Render: static parts =====
 function renderTable(){
+  const sc = SC();
   $('costTbl').innerHTML = M.rows.map(r=>`<tr><td>${r[0]}</td><td>${money(r[1],0)}</td></tr>`).join('')+
     `<tr class="sum"><td>每学期</td><td>${money(M.semCost,0)}</td></tr><tr class="sum"><td>一年合计</td><td>${money(M.t,0)}</td></tr><tr class="sum"><td>四年合计</td><td>${money(M.total,0)}</td></tr>`;
   const p2 = M.perSec*120, cls = M.perSec*M.len;
@@ -396,15 +493,14 @@ function renderTable(){
     `你发呆的 2 分钟，烧掉了 ${money(p2)}，够买一杯 Dunkin' 了。`,
     `这节课 ${money(cls,0)}，认真听讲是唯一的回本方式。`,
     `刷一条 15 秒短视频 = ${money(M.perSec*15)}，这是全校最贵的短视频。`,
-    `这个学费消耗速度，不知道的以为你在隔壁上耶鲁。`,
-    `迟到 10 分钟 = ${money(M.perSec*600)}，够在 Union 吃一顿了。`,
+    `这个学费消耗速度，不知道的以为你在${sc.rival}上课。`,
+    `迟到 10 分钟 = ${money(M.perSec*600)}，够在食堂吃一顿了。`,
     `现在下雪停课？恭喜，学费照扣。`,
     `每天就算躺平睡觉，也有 ${money(M.t/365,0)} 悄悄离开你的账户。`,
-    `Husky 加油！你的钱包已经在加油了。`
+    `${sc.short} 加油！你的钱包已经在加油了。`
   ];
   $('ticker').innerHTML = lines.map(l=>`<b>${l}</b>`).join('');
-  $('whoTag').textContent = `${NAMES[S.res]} · ${GRADES[S.grade]}${SEMS[S.sem]}`;
-  // track labels
+  $('whoTag').textContent = whoText();
   let lbl='', trk='';
   for(let i=0;i<8;i++){
     trk += `<div class="seg8${i===M.semIdx?' now':''}"><i id="seg${i}"></i></div>`;
@@ -412,19 +508,21 @@ function renderTable(){
   }
   $('track').innerHTML=trk; $('trackLbl').innerHTML=lbl;
   const [a,b]=M.win;
-  $('semNote').textContent = `每学期 ${money(M.semCost,0)}。当前学期按 ${a.getMonth()+1}/${a.getDate()}–${b.getMonth()+1}/${b.getDate()} 计算，`+
+  $('semNote').textContent = `每学期 ${money(M.semCost,0)}。当前学期按 ${md(a)}–${md(b)} 计算，`+
     (Date.now()<a ? '还没开学，本学期暂未计入。' : Date.now()>b ? '本学期已结束，全额计入。' : `已过 ${(semFrac()*100).toFixed(1)}%。`);
   renderShop();
 }
 
 // ===== Shop =====
-function cartTotal(){return ITEMS.reduce((s,it)=>s+(S.cart[it.id]||0)*it.p,0)}
+const price = it => it.p(SC());
+const iname = it => it.nm(SC());
+function cartTotal(){return ITEMS.reduce((s,it)=>s+(S.cart[it.id]||0)*price(it),0)}
 function renderShop(){
   $('shop').innerHTML = ITEMS.map(it=>`
     <div class="item" id="it_${it.id}">
       <div class="ic">${it.ic}</div>
-      <div class="nm">${it.nm}</div>
-      <div class="pr">${money(it.p,0)}</div>
+      <div class="nm">${iname(it)}</div>
+      <div class="pr">${money(price(it),0)}</div>
       <div class="max" id="mx_${it.id}"></div>
       <div class="ctl">
         <button data-a="-" data-id="${it.id}" aria-label="减少">−</button>
@@ -443,27 +541,27 @@ function updateShop(){
   ITEMS.forEach(it=>{
     const q=S.cart[it.id]||0, card=$('it_'+it.id); if(!card) return;
     card.classList.toggle('has',q>0);
-    card.querySelector('.buy').disabled = left < it.p;
+    card.querySelector('.buy').disabled = left < price(it);
     card.querySelector('[data-a="-"]').disabled = q<=0;
     const inp = card.querySelector('input'); if(document.activeElement!==inp) inp.value=q;
-    $('mx_'+it.id).textContent = `剩余预算还能买 ${fmt(Math.max(0,Math.floor(left/it.p)),0)} 个`;
+    $('mx_'+it.id).textContent = `剩余预算还能买 ${fmt(Math.max(0,Math.floor(left/price(it))),0)} 个`;
   });
 }
 function renderReceipt(){
   const picked = ITEMS.filter(it=>S.cart[it.id]>0);
   if(!picked.length){
     const d=ITEMS[0], b=consumed();
-    $('receipt').innerHTML = `<h3>🧾 购物小票</h3><div class="empty">还没买东西。提示：你烧掉的学费够买 <b>${fmt(Math.floor(b/d.p),0)}</b> 杯 Dunkin' 冰咖啡。</div>`;
+    $('receipt').innerHTML = `<h3>🧾 购物小票</h3><div class="empty">还没买东西。提示：你烧掉的学费够买 <b>${fmt(Math.floor(b/price(d)),0)}</b> 杯 Dunkin' 冰咖啡。</div>`;
     return;
   }
   $('receipt').innerHTML = `<h3>🧾 购物小票</h3>` + picked.map(it=>
-    `<div class="row"><span>${it.ic} ${it.nm} × ${S.cart[it.id]}</span><span>${money(it.p*S.cart[it.id],0)}</span></div>`).join('') +
+    `<div class="row"><span>${it.ic} ${iname(it)} × ${S.cart[it.id]}</span><span>${money(price(it)*S.cart[it.id],0)}</span></div>`).join('') +
     `<div class="row tot"><span>合计</span><span>${money(cartTotal(),0)}</span></div>`;
 }
 function setQty(id,q){
   const it=ITEMS.find(x=>x.id===id); q=Math.max(0,Math.floor(q||0));
-  const others = cartTotal()-(S.cart[id]||0)*it.p;
-  const maxQ = Math.floor((consumed()-others)/it.p);
+  const others = cartTotal()-(S.cart[id]||0)*price(it);
+  const maxQ = Math.floor((consumed()-others)/price(it));
   if(q>maxQ){q=Math.max(0,maxQ);toast('预算不够啦，已经帮你买到上限');}
   S.cart[id]=q; store.set('cart',S.cart); updateShop(); renderReceipt();
 }
@@ -471,23 +569,21 @@ $('shop').addEventListener('click',e=>{
   const b=e.target.closest('button[data-a]'); if(!b) return;
   const id=b.dataset.id; setQty(id,(S.cart[id]||0)+(b.dataset.a==='+'?1:-1));
 });
-$('shop').addEventListener('change',e=>{
-  if(e.target.matches('input[data-id]')) setQty(e.target.dataset.id,+e.target.value);
-});
+$('shop').addEventListener('change',e=>{ if(e.target.matches('input[data-id]')) setQty(e.target.dataset.id,+e.target.value); });
 $('clearBtn').onclick=()=>{S.cart={};store.set('cart',S.cart);updateShop();renderReceipt();};
 $('luckyBtn').onclick=()=>{
   S.cart={}; let left=consumed();
-  const pool=[...ITEMS].sort((a,b)=>b.p-a.p);
-  for(const it of pool){ if(it.p<=left && Math.random()<.55){const n=1+Math.floor(Math.random()*Math.min(3,left/it.p));S.cart[it.id]=n;left-=n*it.p;} }
-  const cheap=ITEMS[0]; if(left>=cheap.p){S.cart[cheap.id]=(S.cart[cheap.id]||0)+Math.floor(left/cheap.p);}
+  const pool=[...ITEMS].sort((a,b)=>price(b)-price(a));
+  for(const it of pool){ const pr=price(it); if(pr<=left && Math.random()<.55){const n=1+Math.floor(Math.random()*Math.min(3,left/pr));S.cart[it.id]=n;left-=n*pr;} }
+  const cheap=ITEMS[0]; if(left>=price(cheap)){S.cart[cheap.id]=(S.cart[cheap.id]||0)+Math.floor(left/price(cheap));}
   store.set('cart',S.cart); updateShop(); renderReceipt(); toast('已经帮你花光了 💸');
 };
 $('copyBtn').onclick=async()=>{
-  const picked = ITEMS.filter(it=>S.cart[it.id]>0);
-  let txt = `我是 UConn ${GRADES[S.grade]}${SEMS[S.sem]}的${NAMES[S.res]}学生，已经烧掉了 ${money(consumed(),0)} 学费 🔥\n`;
-  txt += picked.length ? '这些钱本来可以买：'+picked.map(it=>`${it.nm}×${S.cart[it.id]}`).join('、') :
-    `这些钱够买 ${fmt(Math.floor(consumed()/ITEMS[0].p),0)} 杯 Dunkin' 冰咖啡`;
-  txt += `\n算算你的：${location.href.split('#')[0]}`;
+  const sc=SC(), picked = ITEMS.filter(it=>S.cart[it.id]>0);
+  let txt = `我是${sc.cn}（${sc.short}）${GRADES[S.grade]}${SEMS[S.sem]}的学生（${M.v.label}），已经烧掉了 ${money(consumed(),0)} 学费 🔥\n`;
+  txt += picked.length ? '这些钱本来可以买：'+picked.map(it=>`${iname(it)}×${S.cart[it.id]}`).join('、') :
+    `这些钱够买 ${fmt(Math.floor(consumed()/price(ITEMS[0])),0)} 杯 Dunkin' 冰咖啡`;
+  txt += `\n算算你的：${location.href.split('#')[0].split('?')[0]}`;
   try{await navigator.clipboard.writeText(txt);toast('已复制，去发朋友圈吧');}catch(e){toast('复制失败，请手动截图分享');}
 };
 let tt; function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2200)}
@@ -522,12 +618,9 @@ let lastShop=0;
 setInterval(()=>{tick(); if(Date.now()-lastShop>1000){lastShop=Date.now();updateShop();}},100);
 
 // ===== Settings wiring =====
-function syncSeg(id,val){document.querySelectorAll('#'+id+' button').forEach(x=>x.classList.toggle('on',x.dataset.v===val))}
-function saveProfile(){store.set('profile',{res:S.res,grade:S.grade,sem:S.sem,house:$('cHouse').checked,meal:$('cMeal').checked})}
-let M;
+function saveProfile(){store.set('profile2',{school:S.school,grade:S.grade,sem:S.sem,pick:S.pick})}
 function recalc(){M=model();renderTable();renderReceipt();tick();saveProfile()}
-document.querySelectorAll('#resSeg button').forEach(btn=>btn.onclick=()=>{S.res=btn.dataset.v;syncSeg('resSeg',S.res);recalc();});
-['cFees','cHouse','cMeal','cIns','cBook','classLen','credits','weeks'].forEach(id=>$(id).addEventListener('input',recalc));
+['classLen','credits','weeks'].forEach(id=>$(id).addEventListener('input',recalc));
 $('startBtn').onclick=()=>{S.start=Date.now();S.running=true;$('pauseBtn').textContent='暂停';tick()};
 $('pauseBtn').onclick=()=>{
   if(S.running){S.pausedAt=Date.now();S.running=false;$('pauseBtn').textContent='继续'}
@@ -536,18 +629,30 @@ $('pauseBtn').onclick=()=>{
 };
 
 // ===== Onboarding modal =====
-let mRes = S.res;
-document.querySelectorAll('#mRes button').forEach(btn=>btn.onclick=()=>{mRes=btn.dataset.v;syncSeg('mRes',mRes);});
+let mDraft = null; // {school, variant, extras}
+function renderModalSchool(){
+  const sc = SCHOOLS[mDraft.school];
+  $('mResLbl').textContent = sc.variantLabel;
+  $('mRes').innerHTML = sc.variants.map(v=>`<button data-v="${v.id}" class="${v.id===mDraft.variant?'on':''}">${v.label}</button>`).join('');
+  $('mExtras').innerHTML = sc.extras.map(e=>`<label><input type="checkbox" data-x="${e.id}" ${mDraft.extras[e.id]?'checked':''}> ${e.short||e.label}</label>`).join('');
+}
+function draftFor(k){ const p = JSON.parse(JSON.stringify(pick(k))); return {school:k, variant:p.variant, extras:p.extras}; }
+$('mSchool').innerHTML = Object.entries(SCHOOLS).map(([k,s])=>`<option value="${k}">${s.cn}（${s.short}）</option>`).join('');
+$('mSchool').onchange = ()=>{ mDraft = draftFor($('mSchool').value); renderModalSchool(); };
+$('mRes').onclick = e => { const b=e.target.closest('button[data-v]'); if(!b) return; mDraft.variant=b.dataset.v;
+  $('mRes').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); };
+$('mExtras').onchange = e => { const x=e.target.dataset.x; if(x) mDraft.extras[x]=e.target.checked; };
 function openModal(){
-  mRes=S.res; syncSeg('mRes',mRes);
-  $('mGrade').value=S.grade; $('mSem').value=S.sem;
-  $('mHouse').checked=$('cHouse').checked; $('mMeal').checked=$('cMeal').checked;
+  mDraft = draftFor(S.school); $('mSchool').value = S.school;
+  $('mGrade').value=S.grade; $('mSem').value=S.sem; renderModalSchool();
   $('modal').classList.add('on');
 }
 $('mGo').onclick=()=>{
-  S.res=mRes; S.grade=+$('mGrade').value; S.sem=+$('mSem').value;
-  $('cHouse').checked=$('mHouse').checked; $('cMeal').checked=$('mMeal').checked;
-  syncSeg('resSeg',S.res); $('modal').classList.remove('on'); recalc();
+  const changed = mDraft.school!==S.school;
+  S.school = mDraft.school; S.pick[S.school] = {variant:mDraft.variant, extras:mDraft.extras};
+  S.grade=+$('mGrade').value; S.sem=+$('mSem').value;
+  if(changed) $('credits').value = SC().credits;
+  $('modal').classList.remove('on'); renderSchoolUI(); recalc();
   setTimeout(()=>$('shopCard').previousElementSibling.scrollIntoView({behavior:'smooth',block:'start'}),150);
 };
 $('editMe').onclick=openModal;
@@ -572,11 +677,13 @@ else {
 }
 
 // ===== Init =====
-if(saved){ if(saved.house) $('cHouse').checked=true; if(saved.meal) $('cMeal').checked=true; }
-else { S.sem = guessSem(); }
-syncSeg('resSeg',S.res);
-M=model(); applyCur();
-if(!saved) openModal();
+const firstVisit = !saved && !legacy;
+if(firstVisit) S.sem = guessSem();
+$('credits').value = SC().credits;
+renderSchoolUI();
+M=model(); applyCur(); saveProfile();
+if(firstVisit) openModal();
+
 </script>
 </body>
 </html>
