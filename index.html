@@ -27,6 +27,10 @@
   .live{color:var(--navy2)}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,204,113,.5)}100%{box-shadow:0 0 0 10px rgba(46,204,113,0)}}
   .label{font-size:14px;color:#5b616b}
+  .topR{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .curSeg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .curSeg button{border-radius:0;padding:6px 12px;font-size:12px;font-weight:700;letter-spacing:.04em;background:#fff;color:var(--muted)}
+  .curSeg button.on{background:var(--navy);color:#fff}
   .cur{color:var(--gold);font-weight:600}
   .hero{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
   .big{font-size:clamp(40px,7vw,64px);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1;margin-top:6px}
@@ -136,7 +140,10 @@
   <div class="card">
     <div class="top">
       <div class="brand">UCONN · STORRS<small>康涅狄格大学 学费实时燃烧计时器</small></div>
-      <div class="badge" id="badge"><span class="dot"></span><span id="badgeTxt">ON CLASS</span></div>
+      <div class="topR">
+        <div class="curSeg" id="curSeg" title="切换显示货币"><button data-c="USD">US$</button><button data-c="CNY">¥ RMB</button></div>
+        <div class="badge" id="badge"><span class="dot"></span><span id="badgeTxt">ON CLASS</span></div>
+      </div>
     </div>
 
     <div class="hero">
@@ -215,7 +222,7 @@
       <button class="ghost" id="clearBtn">清空购物车</button>
       <button class="ghost" id="luckyBtn">帮我随便花</button>
     </div>
-    <div class="note">商品价格为美国常见参考价（税前、取整），仅供娱乐对比。</div>
+    <div class="note">商品价格为美国常见参考价（美元，税前、取整），切换人民币时按当前汇率换算，仅供娱乐对比。</div>
   </div>
 
   <!-- 4. settings + data -->
@@ -248,6 +255,9 @@
         <label>每学期上课周数
           <input type="number" id="weeks" min="10" max="18" value="14">
         </label>
+        <label>汇率（1 美元 = ? 人民币）
+          <input type="number" id="rate" min="1" max="20" step="0.01" value="7.10">
+        </label>
       </div>
       <div class="note">算法：一年费用 ÷（每学期学分 × 2 × 上课周数 × 50 分钟）= 每“上课分钟”的价格。UConn 1 学分 ≈ 每周 50 分钟课堂时间。<br>
       已消耗学费 = 已读完的学期 × 每学期费用 + 当前学期按日历已过的比例 × 每学期费用（秋季学期按 8/25–12/15，春季学期按 1/19–5/10 估算）。假设四年学费不涨。</div>
@@ -256,7 +266,7 @@
     <div class="panel">
       <h2>2026–27 学年费用（Storrs 本科）</h2>
       <table id="costTbl"></table>
-      <div class="note">数据来源：<a href="https://financialaid.uconn.edu/cost/" target="_blank" rel="noopener">UConn 学生财务资助办公室 · Cost of Attendance</a>（2026–2027 学年预估直接费用；健康保险为 2025–26 费率）。未扣除奖学金与助学金，仅供娱乐参考。</div>
+      <div class="note">数据来源：<a href="https://financialaid.uconn.edu/cost/" target="_blank" rel="noopener">UConn 学生财务资助办公室 · Cost of Attendance</a>（2026–2027 学年预估直接费用；健康保险为 2025–26 费率）。未扣除奖学金与助学金，仅供娱乐参考。<br><span id="rateNote"></span></div>
     </div>
   </div>
 </div>
@@ -326,6 +336,11 @@ const ITEMS = [
 
 const $ = id => document.getElementById(id);
 const fmt = (n,d=2)=>n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+// ===== Currency =====
+let CUR = 'USD', RATE = 7.10, RATE_SRC = '参考汇率';
+const cv = n => CUR==='CNY' ? n*RATE : n;
+const sym = () => CUR==='CNY' ? '¥' : '$';
+const money = (n,d=2) => sym()+fmt(cv(n),d);
 const hms = s=>{s=Math.max(0,Math.floor(s));return [s/3600|0,(s%3600)/60|0,s%60].map(x=>String(x).padStart(2,'0')).join(':')};
 const store = {
   get(k){try{return JSON.parse(localStorage.getItem('uconnBurn_'+k))}catch(e){return null}},
@@ -374,17 +389,17 @@ function consumed(){return M.semIdx*M.semCost + semFrac()*M.semCost}
 
 // ===== Render: static parts =====
 function renderTable(){
-  $('costTbl').innerHTML = M.rows.map(r=>`<tr><td>${r[0]}</td><td>$${fmt(r[1],0)}</td></tr>`).join('')+
-    `<tr class="sum"><td>每学期</td><td>$${fmt(M.semCost,0)}</td></tr><tr class="sum"><td>一年合计</td><td>$${fmt(M.t,0)}</td></tr><tr class="sum"><td>四年合计</td><td>$${fmt(M.total,0)}</td></tr>`;
+  $('costTbl').innerHTML = M.rows.map(r=>`<tr><td>${r[0]}</td><td>${money(r[1],0)}</td></tr>`).join('')+
+    `<tr class="sum"><td>每学期</td><td>${money(M.semCost,0)}</td></tr><tr class="sum"><td>一年合计</td><td>${money(M.t,0)}</td></tr><tr class="sum"><td>四年合计</td><td>${money(M.total,0)}</td></tr>`;
   const p2 = M.perSec*120, cls = M.perSec*M.len;
   const lines = [
-    `你发呆的 2 分钟，烧掉了 $${fmt(p2)}，够买一杯 Dunkin' 了。`,
-    `这节课 $${fmt(cls,0)}，认真听讲是唯一的回本方式。`,
-    `刷一条 15 秒短视频 = $${fmt(M.perSec*15)}，这是全校最贵的短视频。`,
+    `你发呆的 2 分钟，烧掉了 ${money(p2)}，够买一杯 Dunkin' 了。`,
+    `这节课 ${money(cls,0)}，认真听讲是唯一的回本方式。`,
+    `刷一条 15 秒短视频 = ${money(M.perSec*15)}，这是全校最贵的短视频。`,
     `这个学费消耗速度，不知道的以为你在隔壁上耶鲁。`,
-    `迟到 10 分钟 = $${fmt(M.perSec*600)}，够在 Union 吃一顿了。`,
+    `迟到 10 分钟 = ${money(M.perSec*600)}，够在 Union 吃一顿了。`,
     `现在下雪停课？恭喜，学费照扣。`,
-    `每天就算躺平睡觉，也有 $${fmt(M.t/365,0)} 悄悄离开你的账户。`,
+    `每天就算躺平睡觉，也有 ${money(M.t/365,0)} 悄悄离开你的账户。`,
     `Husky 加油！你的钱包已经在加油了。`
   ];
   $('ticker').innerHTML = lines.map(l=>`<b>${l}</b>`).join('');
@@ -397,7 +412,7 @@ function renderTable(){
   }
   $('track').innerHTML=trk; $('trackLbl').innerHTML=lbl;
   const [a,b]=M.win;
-  $('semNote').textContent = `每学期 $${fmt(M.semCost,0)}。当前学期按 ${a.getMonth()+1}/${a.getDate()}–${b.getMonth()+1}/${b.getDate()} 计算，`+
+  $('semNote').textContent = `每学期 ${money(M.semCost,0)}。当前学期按 ${a.getMonth()+1}/${a.getDate()}–${b.getMonth()+1}/${b.getDate()} 计算，`+
     (Date.now()<a ? '还没开学，本学期暂未计入。' : Date.now()>b ? '本学期已结束，全额计入。' : `已过 ${(semFrac()*100).toFixed(1)}%。`);
   renderShop();
 }
@@ -409,7 +424,7 @@ function renderShop(){
     <div class="item" id="it_${it.id}">
       <div class="ic">${it.ic}</div>
       <div class="nm">${it.nm}</div>
-      <div class="pr">$${fmt(it.p,0)}</div>
+      <div class="pr">${money(it.p,0)}</div>
       <div class="max" id="mx_${it.id}"></div>
       <div class="ctl">
         <button data-a="-" data-id="${it.id}" aria-label="减少">−</button>
@@ -421,9 +436,9 @@ function renderShop(){
 }
 function updateShop(){
   const budget = consumed(), spent = cartTotal(), left = budget-spent;
-  $('wBudget').textContent = '$'+fmt(budget);
-  $('wSpent').textContent = '$'+fmt(spent,0);
-  $('wLeft').textContent = '$'+fmt(Math.max(0,left));
+  $('wBudget').textContent = money(budget);
+  $('wSpent').textContent = money(spent,0);
+  $('wLeft').textContent = money(Math.max(0,left));
   $('wBar').style.width = (budget>0?Math.min(100,spent/budget*100):0)+'%';
   ITEMS.forEach(it=>{
     const q=S.cart[it.id]||0, card=$('it_'+it.id); if(!card) return;
@@ -442,8 +457,8 @@ function renderReceipt(){
     return;
   }
   $('receipt').innerHTML = `<h3>🧾 购物小票</h3>` + picked.map(it=>
-    `<div class="row"><span>${it.ic} ${it.nm} × ${S.cart[it.id]}</span><span>$${fmt(it.p*S.cart[it.id],0)}</span></div>`).join('') +
-    `<div class="row tot"><span>合计</span><span>$${fmt(cartTotal(),0)}</span></div>`;
+    `<div class="row"><span>${it.ic} ${it.nm} × ${S.cart[it.id]}</span><span>${money(it.p*S.cart[it.id],0)}</span></div>`).join('') +
+    `<div class="row tot"><span>合计</span><span>${money(cartTotal(),0)}</span></div>`;
 }
 function setQty(id,q){
   const it=ITEMS.find(x=>x.id===id); q=Math.max(0,Math.floor(q||0));
@@ -469,7 +484,7 @@ $('luckyBtn').onclick=()=>{
 };
 $('copyBtn').onclick=async()=>{
   const picked = ITEMS.filter(it=>S.cart[it.id]>0);
-  let txt = `我是 UConn ${GRADES[S.grade]}${SEMS[S.sem]}的${NAMES[S.res]}学生，已经烧掉了 $${fmt(consumed(),0)} 学费 🔥\n`;
+  let txt = `我是 UConn ${GRADES[S.grade]}${SEMS[S.sem]}的${NAMES[S.res]}学生，已经烧掉了 ${money(consumed(),0)} 学费 🔥\n`;
   txt += picked.length ? '这些钱本来可以买：'+picked.map(it=>`${it.nm}×${S.cart[it.id]}`).join('、') :
     `这些钱够买 ${fmt(Math.floor(consumed()/ITEMS[0].p),0)} 杯 Dunkin' 冰咖啡`;
   txt += `\n算算你的：${location.href.split('#')[0]}`;
@@ -483,9 +498,9 @@ function tick(){
   let el = (nowMs - S.start)/1000;
   const done = el >= M.len; if(done) el = M.len;
   const used = el*M.perSec, total = M.len*M.perSec;
-  $('used').textContent = fmt(used);
-  $('left').textContent = fmt(total-used);
-  $('ps').textContent = M.perSec.toFixed(4);
+  $('used').textContent = fmt(cv(used));
+  $('left').textContent = fmt(cv(total-used));
+  $('ps').textContent = cv(M.perSec).toFixed(4);
   $('elapsed').textContent = hms(el);
   $('remain').textContent = hms(M.len-el);
   const p = el/M.len*100;
@@ -496,10 +511,10 @@ function tick(){
   else if(!S.running){b.className='badge';$('badgeTxt').textContent='PAUSED'}
   else {b.className='badge live';$('badgeTxt').textContent='ON CLASS'}
   const c = consumed();
-  $('hist').textContent = fmt(c,0);
-  $('histLeft').textContent = fmt(M.total-c,0);
-  $('myUsed').textContent = fmt(c);
-  $('myLeft').textContent = fmt(M.total-c,0);
+  $('hist').textContent = fmt(cv(c),0);
+  $('histLeft').textContent = fmt(cv(M.total-c),0);
+  $('myUsed').textContent = fmt(cv(c));
+  $('myLeft').textContent = fmt(cv(M.total-c),0);
   const f = semFrac();
   for(let i=0;i<8;i++){const s=$('seg'+i); if(s) s.style.width = (i<M.semIdx?100:i===M.semIdx?f*100:0)+'%';}
 }
@@ -537,11 +552,30 @@ $('mGo').onclick=()=>{
 };
 $('editMe').onclick=openModal;
 
+// ===== Currency wiring =====
+function applyCur(){
+  document.querySelectorAll('.cur').forEach(e=>e.textContent = CUR==='CNY' ? '¥' : 'US$');
+  document.querySelectorAll('#curSeg button').forEach(b=>b.classList.toggle('on',b.dataset.c===CUR));
+  if(document.activeElement!==$('rate')) $('rate').value = RATE.toFixed(2);
+  $('rateNote').textContent = `汇率：1 美元 ≈ ${RATE.toFixed(4)} 人民币（${RATE_SRC}）。`;
+  renderTable(); renderReceipt(); tick(); updateShop();
+}
+document.querySelectorAll('#curSeg button').forEach(b=>b.onclick=()=>{CUR=b.dataset.c;store.set('cur',CUR);applyCur();});
+$('rate').addEventListener('change',()=>{const r=+$('rate').value; if(r>0){RATE=r;RATE_SRC='手动设置';store.set('rate',RATE);applyCur();}});
+CUR = store.get('cur') || 'USD';
+if(store.get('rate')){RATE=+store.get('rate');RATE_SRC='手动设置';}
+else {
+  fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()).then(j=>{
+    if(j && j.rates && j.rates.CNY){RATE=j.rates.CNY;
+      RATE_SRC='实时汇率，更新于 '+new Date(j.time_last_update_unix*1000).toLocaleDateString('zh-CN');applyCur();}
+  }).catch(()=>{});
+}
+
 // ===== Init =====
 if(saved){ if(saved.house) $('cHouse').checked=true; if(saved.meal) $('cMeal').checked=true; }
 else { S.sem = guessSem(); }
 syncSeg('resSeg',S.res);
-M=model(); renderTable(); renderReceipt(); tick();
+M=model(); applyCur();
 if(!saved) openModal();
 </script>
 </body>
